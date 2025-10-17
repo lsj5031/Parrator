@@ -1,10 +1,13 @@
-"""Transcription service supporting ONNX and optional FunASR backends."""
+"""Transcription service supporting ONNX, HTTP, and optional FunASR backends."""
 
 import os
 from typing import Any, Optional, Tuple
 
+import numpy as np
 import onnxruntime as ort  # type: ignore[import]
 from onnx_asr import load_model  # type: ignore[import]
+
+from .engine_client import check_server_health, transcribe_http
 
 try:
     import torch  # type: ignore[import]
@@ -34,10 +37,32 @@ class Transcriber:
         self.model: Optional[Any] = None
         self.model_name: Optional[str] = None
         self.backend: Optional[str] = None
+        self._http_available = False
 
     def load_model(self) -> bool:
         """Load the transcription model."""
         try:
+            inference_mode = self.config.get("inference_mode", "embedded")
+
+            # Check if we should use HTTP mode
+            if inference_mode == "http":
+                endpoint = self.config.get(
+                    "inference_endpoint", "http://localhost:5005"
+                )
+                if check_server_health(endpoint):
+                    self._http_available = True
+                    self.backend = "http"
+                    self.model_name = f"HTTP server at {endpoint}"
+                    print(f"Using HTTP inference mode: {endpoint}")
+                    return True
+                else:
+                    print(
+                        f"HTTP server not available at {endpoint}, "
+                        "falling back to embedded mode"
+                    )
+                    self._http_available = False
+
+            # Embedded mode (ONNX/FunASR)
             model_name = self._override_model_name or self.config.get(
                 "model_name", "nemo-parakeet-tdt-0.6b-v2"
             )
@@ -134,7 +159,7 @@ class Transcriber:
             return "backend=unknown, model=unknown, device=unknown"
 
     def transcribe_file(self, audio_path: str) -> Tuple[bool, Optional[str]]:
-        if not self.model or not os.path.exists(audio_path):
+        if not os.path.exists(audio_path):
             return False, None
 
         try:
@@ -143,6 +168,32 @@ class Transcriber:
                 or self._override_backend
                 or self.config.get("backend", "onnx")
             )
+
+            # HTTP mode
+            if backend == "http" and self._http_available:
+                endpoint = self.config.get(
+                    "inference_endpoint", "http://localhost:5005"
+                )
+
+                # Read audio file as PCM bytes
+                try:
+                    import soundfile as sf
+
+                    with sf.SoundFile(audio_path) as f:
+                        audio_data = f.read(dtype=np.float32)
+                        sr = f.samplerate
+                except ImportError:
+                    print("soundfile not available for HTTP mode")
+                    return False, None
+
+                # Convert to PCM16 bytes
+                pcm_bytes = (audio_data * 32767).astype(np.int16).tobytes()
+
+                return transcribe_http(pcm_bytes, int(sr), "en", endpoint)
+
+            # Embedded mode
+            if not self.model:
+                return False, None
 
             if backend == "funasr" and FUNASR_AVAILABLE and AutoModel is not None:
                 result = self.model.generate(input=audio_path)
@@ -190,9 +241,7 @@ class Transcriber:
                 print("Loading model from local files...")
                 model_dir = os.path.dirname(os.path.abspath(encoder_path))
                 self.model = load_model(
-                    "nemo-parakeet-tdt-0.6b-v2",
-                    path=model_dir,
-                    providers=providers,
+                    "nemo-parakeet-tdt-0.6b-v2", path=model_dir, providers=providers
                 )
                 self.model_name = "nemo-parakeet-tdt-0.6b-v2 (local)"
                 self.backend = "onnx"
@@ -202,6 +251,49 @@ class Transcriber:
         except Exception as e:
             print(f"Failed to load local model: {e}")
             return False
+
+    def transcribe_pcm(
+        self, pcm_bytes: bytes, sr: int = 16000
+    ) -> Tuple[bool, Optional[str]]:
+        """Transcribe raw PCM audio data."""
+        try:
+            backend = (
+                self.backend
+                or self._override_backend
+                or self.config.get("backend", "onnx")
+            )
+
+            # HTTP mode
+            if backend == "http" and self._http_available:
+                endpoint = self.config.get(
+                    "inference_endpoint", "http://localhost:5005"
+                )
+                return transcribe_http(pcm_bytes, sr, "en", endpoint)
+
+            # Embedded mode - convert to temporary file
+            if not self.model:
+                return False, None
+
+            import tempfile
+
+            import soundfile as sf
+
+            # Convert PCM bytes to numpy array
+            audio_data = (
+                np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            )
+
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                with sf.SoundFile(
+                    temp_file.name, mode="w", samplerate=sr, channels=1
+                ) as f:
+                    f.write(audio_data)
+
+                return self.transcribe_file(temp_file.name)
+
+        except Exception as e:
+            print(f"PCM transcription failed: {e}")
+            return False, None
 
     @staticmethod
     def funasr_supported() -> bool:

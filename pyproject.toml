@@ -22,6 +22,7 @@ dependencies = [
     "pyautogui (>=0.9.54,<1.0.0)",
     "pystray (>=0.19.5,<0.20.0)",
     "pynput (>=1.8.1,<2.0.0)",
+    "requests (>=2.31.0,<3.0.0)",
 ]
 
 [tool.poetry.group.textrefinement]

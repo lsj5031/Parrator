@@ -1,0 +1,29 @@
+# Windows container for Parrator inference server
+# Uses process isolation for GPU access via DirectML
+
+FROM python:3.11-windowsservercore-ltsc2022
+
+# Set working directory
+WORKDIR C:\app
+
+# Copy requirements first for better caching
+COPY inference_server\requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy inference server code
+COPY inference_server\ .
+
+# Create models directory (optional - models can be mounted)
+RUN mkdir models
+
+# Expose port
+EXPOSE 5005
+
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=5005
+
+# Run the server
+CMD ["python", "server.py"]
