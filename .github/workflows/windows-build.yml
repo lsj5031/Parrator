@@ -1,0 +1,55 @@
+name: Build Windows executable
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry
+
+      - name: Configure Poetry cache
+        run: |
+          echo "POETRY_CACHE_DIR=${{ runner.temp }}\\poetry-cache" >> $Env:GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Download Parakeet assets
+        run: |
+          poetry run python -c "from huggingface_hub import hf_hub_download; repo_id='istupakov/parakeet-tdt-0.6b-v2-onnx'; [hf_hub_download(repo_id=repo_id, filename=name, local_dir='.') for name in ['encoder-model.onnx','decoder_joint-model.onnx','vocab.txt']]"
+
+      - name: Build executable with PyInstaller
+        run: |
+          poetry run pyinstaller Parrator.spec
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Parrator-windows-build
+          path: dist/Parrator
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/Parrator/Parrator.exe
