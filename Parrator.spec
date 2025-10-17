@@ -15,6 +15,7 @@ datas = [
     ('encoder-model.onnx', '.'),
     ('parrator/resources/icon.png', 'resources'),
     ('parrator/resources/icon.ico', 'resources'),
+    ('parrator/hotkey_manager.py', 'parrator'),
 ] + collect_data_files('onnx_asr')
 
 # Binaries: dynamic libs from onnxruntime
