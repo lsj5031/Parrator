@@ -1,9 +1,6 @@
-"""
-Cross-platform system notifications.
-"""
+"""Cross-platform system notifications."""
 
 import platform
-from typing import Optional
 
 
 class NotificationManager:
@@ -42,7 +39,7 @@ class NotificationManager:
             import subprocess
             script = f'display notification "{message}" with title "{title}"'
             subprocess.run(['osascript', '-e', script], check=True)
-        except:
+        except Exception:
             self._show_plyer_notification(title, message)
 
     def _show_linux_notification(self, title: str, message: str):
@@ -50,7 +47,7 @@ class NotificationManager:
         try:
             import subprocess
             subprocess.run(['notify-send', title, message], check=True)
-        except:
+        except Exception:
             self._show_plyer_notification(title, message)
 
     def _show_plyer_notification(self, title: str, message: str):

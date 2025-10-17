@@ -2,22 +2,23 @@
 Simplified tray application.
 """
 
+import contextlib
 import os
+import subprocess
 import sys
 import threading
 import time
-import subprocess
 from typing import Optional
 
 import pystray
 from PIL import Image
 
+from .audio_recorder import AudioRecorder
 from .config import Config
 from .hotkey_manager import HotkeyManager
-from .audio_recorder import AudioRecorder
-from .transcriber import Transcriber
 from .notifications import NotificationManager
 from .startup import StartupManager
+from .transcriber import Transcriber
 
 
 class ParratorTrayApp:
@@ -161,10 +162,8 @@ class ParratorTrayApp:
                 success, text = self.transcriber.transcribe_file(temp_path)
 
                 # Cleanup temp file
-                try:
+                with contextlib.suppress(Exception):
                     os.remove(temp_path)
-                except:
-                    pass
 
                 if success and text:
                     self._handle_transcription_result(text)

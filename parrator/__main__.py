@@ -3,8 +3,9 @@
 Parrator Tray - Simple Speech-to-Text System Tray Application
 """
 
-import sys
 import signal
+import sys
+
 from parrator.tray_app import ParratorTrayApp
 
 

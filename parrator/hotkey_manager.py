@@ -3,6 +3,7 @@ Global hotkey management using pynput.
 """
 
 from typing import Callable, Optional
+
 from pynput import keyboard
 
 
@@ -26,8 +27,10 @@ class HotkeyManager:
             self.hotkey_listener = keyboard.GlobalHotKeys(hotkey_map)
             self.hotkey_listener.start()
 
-            print(f"Hotkey '{self.hotkey_combo}' registered successfully as '{
-                  pynput_hotkey}'")
+            print(
+                "Hotkey "
+                f"'{self.hotkey_combo}' registered successfully as '{pynput_hotkey}'"
+            )
             return True
 
         except Exception as e:

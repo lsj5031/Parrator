@@ -1,10 +1,8 @@
-"""
-Cross-platform startup integration.
-"""
+"""Cross-platform startup integration."""
 
 import os
-import sys
 import platform
+import sys
 
 
 class StartupManager:
@@ -60,7 +58,7 @@ class StartupManager:
             winreg.QueryValueEx(key, self.app_name)
             winreg.CloseKey(key)
             return True
-        except:
+        except OSError:
             return False
 
     def _enable_windows_startup(self) -> bool:
@@ -90,7 +88,7 @@ class StartupManager:
             winreg.DeleteValue(key, self.app_name)
             winreg.CloseKey(key)
             return True
-        except:
+        except OSError:
             return False
 
     # macOS implementation
@@ -130,7 +128,7 @@ class StartupManager:
             if os.path.exists(plist_path):
                 os.remove(plist_path)
             return True
-        except:
+        except OSError:
             return False
 
     def _get_macos_plist_path(self) -> str:
@@ -169,7 +167,7 @@ X-GNOME-Autostart-enabled=true
             if os.path.exists(desktop_path):
                 os.remove(desktop_path)
             return True
-        except:
+        except OSError:
             return False
 
     def _get_linux_desktop_path(self) -> str:

@@ -1,7 +1,6 @@
-"""
-Simplified audio recording functionality.
-"""
+"""Simplified audio recording functionality."""
 
+import contextlib
 import tempfile
 import threading
 from typing import List, Optional
@@ -87,8 +86,6 @@ class AudioRecorder:
     def cleanup(self):
         """Clean up audio resources."""
         if self.stream:
-            try:
+            with contextlib.suppress(Exception):
                 self.stream.stop()
                 self.stream.close()
-            except:
-                pass
