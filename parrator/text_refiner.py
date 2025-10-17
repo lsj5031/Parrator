@@ -1,6 +1,4 @@
-"""
-AI-powered text refinement for transcribed speech.
-"""
+"""AI-powered text refinement for transcribed speech."""
 
 import re
 import threading
@@ -13,10 +11,15 @@ class TextRefiner:
 
     def __init__(self, config: Config):
         self.config = config
-        self.punctuation_model = None
-        self.normalization_model = None
         self.models_loaded = False
         self.load_lock = threading.Lock()
+        self._refinement_pipeline = None
+        self._prompt_prefix: str = self.config.get(
+            "text_refinement_prompt_prefix", "grammar:"
+        )
+        self._model_name: str = self.config.get(
+            "text_refinement_model", "vennify/t5-base-grammar-correction"
+        )
 
     def load_models(self) -> bool:
         """Load text processing models in background."""
@@ -25,22 +28,29 @@ class TextRefiner:
                 return True
 
             try:
-                # Try to import NeMo NLP models
-                from nemo.collections.nlp.models import PunctuationCapitalizationModel
+                from transformers import pipeline
 
-                # Load punctuation and capitalization model
-                model_name = "punctuation_en_distilbert"
-                print(f"Loading text refinement model: {model_name}")
+                device = -1
+                try:
+                    import torch
 
-                self.punctuation_model = PunctuationCapitalizationModel.from_pretrained(
-                    model_name
+                    if torch.cuda.is_available():
+                        device = 0
+                except ImportError:
+                    pass
+
+                print(f"Loading text refinement model: {self._model_name}")
+                self._refinement_pipeline = pipeline(
+                    "text2text-generation",
+                    model=self._model_name,
+                    device=device,
                 )
                 self.models_loaded = True
                 print("Text refinement models loaded successfully")
                 return True
 
             except ImportError:
-                print("NeMo NLP not available, using basic text processing")
+                print("Transformers not available, using basic text processing")
                 self.models_loaded = False
                 return False
             except Exception as e:
@@ -53,43 +63,43 @@ class TextRefiner:
         if not text or not text.strip():
             return text
 
-        # Check if text refinement is enabled
         if not self.config.get("enable_text_refinement", True):
             return text
 
-        # Check if this ASR model should use refinement
         model_specific_config = self.config.get("text_refinement_models", {})
         if model_specific_config:
-            # Check if current model is in the configuration
             model_enabled = model_specific_config.get(asr_model, True)
             if not model_enabled:
                 return text
 
-        # Try AI refinement first
         if self.models_loaded or self.load_models():
             try:
                 return self._ai_refine_text(text)
             except Exception as e:
                 print(f"AI text refinement failed: {e}")
-                # Fall back to basic processing
                 return self._basic_refine_text(text)
-        else:
-            # Use basic text processing
-            return self._basic_refine_text(text)
+        return self._basic_refine_text(text)
 
     def _ai_refine_text(self, text: str) -> str:
         """Use AI models for text refinement."""
-        if not self.punctuation_model:
+        if not self._refinement_pipeline:
             return self._basic_refine_text(text)
 
-        try:
-            # Add punctuation and capitalization
-            refined_text = self.punctuation_model.add_punctuation_capitalization(
-                [text]
-            )[0]
+        prompt = f"{self._prompt_prefix} {text.strip()}".strip()
+        max_length = min(self.config.get("text_refinement_max_length", 256), 512)
 
-            # Apply basic cleanup
-            return self._basic_refine_text(refined_text)
+        try:
+            result = self._refinement_pipeline(
+                prompt,
+                num_beams=self.config.get("text_refinement_beams", 4),
+                do_sample=False,
+                max_length=max_length,
+                clean_up_tokenization_spaces=True,
+            )
+            generated = result[0]["generated_text"].strip() if result else ""
+            if not generated:
+                return self._basic_refine_text(text)
+            return self._basic_refine_text(generated)
 
         except Exception as e:
             print(f"AI refinement error: {e}")
@@ -168,7 +178,11 @@ class TextRefiner:
 
     def is_available(self) -> bool:
         """Check if text refinement is available."""
-        return self.models_loaded or self.config.get("enable_text_refinement", True)
+        return (
+            self.models_loaded
+            or self._refinement_pipeline is not None
+            or self.config.get("enable_text_refinement", True)
+        )
 
     def get_status(self) -> str:
         """Get current status of text refiner."""
