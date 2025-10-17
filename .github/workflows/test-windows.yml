@@ -35,7 +35,7 @@ jobs:
 
     - name: Validate lock (no changes)
       run: |
-        poetry lock --check --no-interaction
+        poetry check --lock --no-interaction
 
     - name: Install dependencies
       run: |
