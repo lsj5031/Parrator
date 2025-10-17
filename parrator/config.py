@@ -16,6 +16,9 @@ class Config:
             "hotkey": "ctrl+shift+;",
             "model_name": "nemo-parakeet-tdt-0.6b-v2",
             "backend": "onnx",
+            # Inference mode: embedded (default) or http
+            "inference_mode": "embedded",
+            "inference_endpoint": "http://localhost:5005",
             # Secondary Mandarin (FunASR) hotkey and model (config-only fields)
             "hotkey_mandarin": "ctrl+alt+m",
             "mandarin_backend": "funasr",
