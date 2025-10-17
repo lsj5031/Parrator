@@ -5,9 +5,9 @@ import tempfile
 import threading
 from typing import List, Optional
 
-import numpy as np
-import sounddevice as sd
-import soundfile as sf
+import numpy as np  # type: ignore[import]
+import sounddevice as sd  # type: ignore[import-untyped]
+import soundfile as sf  # type: ignore[import-untyped]
 
 from .config import Config
 
@@ -33,9 +33,10 @@ class AudioRecorder:
                     samplerate=self.sample_rate,
                     channels=self.channels,
                     callback=self._audio_callback,
-                    dtype='float32'
+                    dtype="float32",
                 )
 
+                assert self.stream is not None
                 self.stream.start()
                 return True
 
@@ -73,7 +74,7 @@ class AudioRecorder:
     def save_temp_audio(self, audio_data: np.ndarray) -> Optional[str]:
         """Save audio data to temporary file."""
         try:
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
                 temp_path = temp_file.name
 
             sf.write(temp_path, audio_data, self.sample_rate)

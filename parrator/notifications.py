@@ -26,7 +26,8 @@ class NotificationManager:
     def _show_windows_notification(self, title: str, message: str):
         """Show Windows notification."""
         try:
-            import win10toast
+            import win10toast  # type: ignore[import]
+
             toaster = win10toast.ToastNotifier()
             toaster.show_toast(title, message, duration=3)
         except ImportError:
@@ -37,8 +38,9 @@ class NotificationManager:
         """Show macOS notification."""
         try:
             import subprocess
+
             script = f'display notification "{message}" with title "{title}"'
-            subprocess.run(['osascript', '-e', script], check=True)
+            subprocess.run(["osascript", "-e", script], check=True)
         except Exception:
             self._show_plyer_notification(title, message)
 
@@ -46,18 +48,16 @@ class NotificationManager:
         """Show Linux notification."""
         try:
             import subprocess
-            subprocess.run(['notify-send', title, message], check=True)
+
+            subprocess.run(["notify-send", title, message], check=True)
         except Exception:
             self._show_plyer_notification(title, message)
 
     def _show_plyer_notification(self, title: str, message: str):
         """Fallback notification using plyer."""
         try:
-            from plyer import notification
-            notification.notify(
-                title=title,
-                message=message,
-                timeout=3
-            )
+            from plyer import notification  # type: ignore[import]
+
+            notification.notify(title=title, message=message, timeout=3)
         except ImportError:
             print(f"NOTIFICATION: {title} - {message}")

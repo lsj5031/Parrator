@@ -10,8 +10,8 @@ import threading
 import time
 from typing import Optional
 
-import pystray
-from PIL import Image
+import pystray  # type: ignore[import-untyped]
+from PIL import Image  # type: ignore[import]
 
 from .audio_recorder import AudioRecorder
 from .config import Config
@@ -55,11 +55,10 @@ class ParratorTrayApp:
 
         hotkey_label = self.config.get("hotkey")
         hotkey_label_zh = self.config.get("hotkey_mandarin", "ctrl+alt+m")
-        print(
-            f"Ready! Press {hotkey_label} (EN) or {hotkey_label_zh} (ZH) to record"
-        )
+        print(f"Ready! Press {hotkey_label} (EN) or {hotkey_label_zh} (ZH) to record")
 
         # Run tray (this blocks)
+        assert self.tray_icon is not None
         try:
             self.tray_icon.run()
         except KeyboardInterrupt:
@@ -101,7 +100,7 @@ class ParratorTrayApp:
             pystray.MenuItem(
                 "Text Refinement",
                 self._toggle_text_refinement,
-                checked=lambda item: self.config.get('text_refinement.enabled', True),
+                checked=lambda item: self.config.get("text_refinement.enabled", True),
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
@@ -241,12 +240,13 @@ class ParratorTrayApp:
 
         # Copy to clipboard
         try:
-            import pyperclip
+            import pyperclip  # type: ignore[import-untyped]
+
             pyperclip.copy(refined_text)
             print("Copied to clipboard")
 
             # Auto-paste if enabled
-            if self.config.get('auto_paste', True):
+            if self.config.get("auto_paste", True):
                 self._auto_paste()
 
         except Exception as e:
@@ -271,7 +271,7 @@ class ParratorTrayApp:
     def _auto_paste(self):
         """Automatically paste from clipboard."""
         try:
-            import pyautogui
+            import pyautogui  # type: ignore[import-untyped]
 
             time.sleep(0.1)
             pyautogui.hotkey("ctrl", "v")
@@ -310,9 +310,9 @@ class ParratorTrayApp:
 
     def _toggle_text_refinement(self):
         """Toggle text refinement on/off."""
-        current_state = self.config.get('text_refinement.enabled', True)
+        current_state = self.config.get("text_refinement.enabled", True)
         new_state = not current_state
-        self.config.set('text_refinement.enabled', new_state)
+        self.config.set("text_refinement.enabled", new_state)
 
         if new_state:
             print("Text refinement enabled")
@@ -336,12 +336,13 @@ class ParratorTrayApp:
         """Quit the application."""
         print("Quitting...")
         self.cleanup()
+        assert self.tray_icon is not None
         self.tray_icon.stop()
 
     def _get_icon_path(self):
         """Get path to tray icon."""
         if getattr(sys, "frozen", False):
-            base_path = sys._MEIPASS
+            base_path = sys._MEIPASS  # type: ignore[attr-defined]
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
 

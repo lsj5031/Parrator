@@ -4,7 +4,7 @@ Global hotkey management using pynput.
 
 from typing import Callable, Optional
 
-from pynput import keyboard
+from pynput import keyboard  # type: ignore[import-untyped]
 
 
 class HotkeyManager:
@@ -42,26 +42,26 @@ class HotkeyManager:
         # Convert common formats to pynput format
         # config: "ctrl+shift+;" -> pynput: "<ctrl>+<shift>+;"
 
-        parts = hotkey.lower().split('+')
+        parts = hotkey.lower().split("+")
         converted_parts = []
 
         for part in parts:
             part = part.strip()
-            if part in ['ctrl', 'control']:
-                converted_parts.append('<ctrl>')
-            elif part in ['shift']:
-                converted_parts.append('<shift>')
-            elif part in ['alt']:
-                converted_parts.append('<alt>')
-            elif part in ['cmd', 'win', 'super']:
-                converted_parts.append('<cmd>')
+            if part in ["ctrl", "control"]:
+                converted_parts.append("<ctrl>")
+            elif part in ["shift"]:
+                converted_parts.append("<shift>")
+            elif part in ["alt"]:
+                converted_parts.append("<alt>")
+            elif part in ["cmd", "win", "super"]:
+                converted_parts.append("<cmd>")
             elif len(part) == 1:  # Single character
                 converted_parts.append(part)
             else:
                 # For special keys like 'space', 'enter', etc.
-                converted_parts.append(f'<{part}>')
+                converted_parts.append(f"<{part}>")
 
-        return '+'.join(converted_parts)
+        return "+".join(converted_parts)
 
     def stop(self):
         """Stop listening for hotkeys."""

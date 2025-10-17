@@ -2,6 +2,7 @@
 
 import re
 import threading
+from typing import Any, Optional
 
 from .config import Config
 
@@ -13,7 +14,7 @@ class TextRefiner:
         self.config = config
         self.models_loaded = False
         self.load_lock = threading.Lock()
-        self._refinement_pipeline = None
+        self._refinement_pipeline: Optional[Any] = None
         self._prompt_prefix: str = self.config.get(
             "text_refinement_prompt_prefix", "grammar:"
         )
@@ -28,11 +29,11 @@ class TextRefiner:
                 return True
 
             try:
-                from transformers import pipeline
+                from transformers import pipeline  # type: ignore[import]
 
                 device = -1
                 try:
-                    import torch
+                    import torch  # type: ignore[import]
 
                     if torch.cuda.is_available():
                         device = 0
@@ -41,9 +42,7 @@ class TextRefiner:
 
                 print(f"Loading text refinement model: {self._model_name}")
                 self._refinement_pipeline = pipeline(
-                    "text2text-generation",
-                    model=self._model_name,
-                    device=device,
+                    "text2text-generation", model=self._model_name, device=device
                 )
                 self.models_loaded = True
                 print("Text refinement models loaded successfully")

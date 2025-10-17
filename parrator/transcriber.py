@@ -1,14 +1,14 @@
 """Transcription service supporting ONNX and optional FunASR backends."""
 
 import os
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
-import onnxruntime as ort
-from onnx_asr import load_model
+import onnxruntime as ort  # type: ignore[import]
+from onnx_asr import TextResultsAsrAdapter, load_model  # type: ignore[import]
 
 try:
-    import torch
-    from funasr import AutoModel
+    import torch  # type: ignore[import]
+    from funasr import AutoModel  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover - optional dependency
     AutoModel = None  # type: ignore[assignment]
     torch = None  # type: ignore[assignment]
@@ -31,8 +31,8 @@ class Transcriber:
         self.config = config
         self._override_backend = backend
         self._override_model_name = model_name
-        self.model = None
-        self.model_name = None
+        self.model: Optional[Union[TextResultsAsrAdapter, Any]] = None
+        self.model_name: Optional[str] = None
         self.backend: Optional[str] = None
 
     def load_model(self) -> bool:
@@ -129,9 +129,7 @@ class Transcriber:
                 or self._override_model_name
                 or self.config.get("model_name")
             )
-            return (
-                f"backend={backend}, model={model_ref}, device={device or 'N/A'}"
-            )
+            return f"backend={backend}, model={model_ref}, device={device or 'N/A'}"
         except Exception:
             return "backend=unknown, model=unknown, device=unknown"
 

@@ -13,6 +13,8 @@ Parrator is a lightweight, always-on speech-to-text application that runs in you
 ## Features
 
 - **Global Hotkey Recording**: Press `Ctrl+Shift+;` from anywhere to start/stop recording
+- **Multiple Backends**: Choose between ONNX models (default) or FunASR for enhanced Chinese speech recognition
+- **AI-Powered Text Refinement**: Automatic grammar correction and filler word removal using NLP models
 - **Automatic Transcription**: Uses NVIDIA Parakeet ONNX models (AMD GPU supported) for fast, accurate speech-to-text
 - **Clipboard Integration**: Transcriptions are automatically copied to clipboard with optional auto-paste
 - **System Tray**: Runs silently in the background with minimal resource usage
@@ -33,6 +35,21 @@ Other platform executables WIP.
 
 - Python 3.11+
 - Poetry for dependency management
+
+### Optional Dependencies
+
+For enhanced features, install optional dependency groups:
+
+```bash
+# AI-powered text refinement (grammar correction)
+poetry install --with textrefinement
+
+# FunASR Chinese speech recognition
+poetry install --with funasr
+
+# Install all optional features
+poetry install --with textrefinement,funasr
+```
 
 ### (dev) Installation
 
@@ -61,26 +78,37 @@ Right-click the tray icon and select "Settings" to edit configuration:
 ```json
 {
   "hotkey": "ctrl+shift+;",
-  "model_name": "nemo-parakeet-tdt-0.6b-v2", 
+  "model_name": "nemo-parakeet-tdt-0.6b-v2",
+  "backend": "onnx",
   "auto_paste": true,
-  "auto_start_with_system": false
+  "auto_start_with_system": false,
+  "enable_text_refinement": true,
+  "remove_filler_words": true
 }
 ```
 
 ### Settings
 
-- **hotkey**: Global keyboalllshortcut (e.g., "ctrl+shift+;", "alt+space")
+- **hotkey**: Global keyboard shortcut (e.g., "ctrl+shift+;", "alt+space")
+- **backend**: Transcription backend - `"onnx"` (default) or `"funasr"` for Chinese speech recognition
 - **model_name**: Speech recognition model to use
 - **auto_paste**: Automatically paste transcription after copying to clipboard
 - **auto_start_with_system**: Launch Parrator when your computer starts
+- **enable_text_refinement**: Enable AI-powered grammar correction and text improvement
+- **remove_filler_words**: Automatically remove filler words (um, uh, like, etc.)
 
 ## Supported Models
 
+### ONNX Backend (default)
 - `nemo-parakeet-tdt-0.6b-v2` (default, fast and accurate)
 - `nvidia/parakeet-tdt-0.6b-v2`
 - `openai/whisper-tiny` (lightweight)
 - `openai/whisper-base`
 - `openai/whisper-small`
+
+### FunASR Backend (Chinese speech recognition)
+- `funasr/paraformer-zh` - Optimized for Chinese speech recognition
+- `funasr/whisper-large-v3` - FunASR's implementation of Whisper with Chinese support
 
 ## System Requirements
 
@@ -111,6 +139,32 @@ python -c "import sounddevice; print(sounddevice.query_devices())"
 ```bash
 poetry run pyinstaller Parrator.spec
 ```
+
+## Changelog
+
+### v0.2.0 (Current)
+
+#### New Features
+- **FunASR Integration**: Added support for FunASR backend with enhanced Chinese speech recognition
+- **AI-Powered Text Refinement**: Automatic grammar correction and filler word removal using NLP models
+- **Multiple Backend Support**: Choose between ONNX and FunASR backends
+- **Enhanced Configuration**: New configuration options for text refinement and backend selection
+
+#### Improvements
+- **Better Chinese Support**: Paraformer-zh model provides excellent Chinese speech recognition
+- **GPU Acceleration**: Automatic CUDA detection for FunASR models
+- **Fallback System**: Graceful fallback between backends if model loading fails
+- **Enhanced UI**: Improved tray app with better status indicators
+
+#### Technical Changes
+- Added `funasr` and `textrefinement` optional dependency groups
+- Updated configuration system with new defaults
+- Improved error handling and logging
+- Enhanced Windows CI/CD workflows
+
+### v0.0.13
+
+Previous version features and improvements.
 
 ## Contributing
 

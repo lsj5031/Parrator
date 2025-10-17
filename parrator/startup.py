@@ -3,6 +3,7 @@
 import os
 import platform
 import sys
+from typing import Any
 
 
 class StartupManager:
@@ -41,37 +42,46 @@ class StartupManager:
 
     def _get_executable_path(self) -> str:
         """Get path to current executable."""
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             return sys.executable
         else:
-            return sys.executable + ' ' + os.path.abspath(__file__)
+            return sys.executable + " " + os.path.abspath(__file__)
 
     # Windows implementation
     def _is_windows_startup_enabled(self) -> bool:
         try:
             import winreg
-            key = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
+
+            key: Any = winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_CURRENT_USER,  # type: ignore[attr-defined]
                 r"Software\Microsoft\Windows\CurrentVersion\Run",
-                0, winreg.KEY_READ
+                0,
+                winreg.KEY_READ,  # type: ignore[attr-defined]
             )
-            winreg.QueryValueEx(key, self.app_name)
-            winreg.CloseKey(key)
+            winreg.QueryValueEx(key, self.app_name)  # type: ignore[attr-defined]
+            winreg.CloseKey(key)  # type: ignore[attr-defined]
             return True
         except OSError:
             return False
 
     def _enable_windows_startup(self) -> bool:
         try:
-            import winreg
-            key = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
+            import winreg  # type: ignore[import]
+
+            key: Any = winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_CURRENT_USER,  # type: ignore[attr-defined]
                 r"Software\Microsoft\Windows\CurrentVersion\Run",
-                0, winreg.KEY_SET_VALUE
+                0,
+                winreg.KEY_SET_VALUE,  # type: ignore[attr-defined]
             )
-            winreg.SetValueEx(key, self.app_name, 0, winreg.REG_SZ,
-                              self._get_executable_path())
-            winreg.CloseKey(key)
+            winreg.SetValueEx(  # type: ignore[attr-defined]
+                key,
+                self.app_name,
+                0,
+                winreg.REG_SZ,  # type: ignore[attr-defined]
+                self._get_executable_path(),
+            )
+            winreg.CloseKey(key)  # type: ignore[attr-defined]
             return True
         except Exception as e:
             print(f"Failed to enable Windows startup: {e}")
@@ -79,14 +89,16 @@ class StartupManager:
 
     def _disable_windows_startup(self) -> bool:
         try:
-            import winreg
-            key = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
+            import winreg  # type: ignore[import]
+
+            key = winreg.OpenKey(  # type: ignore[attr-defined]
+                winreg.HKEY_CURRENT_USER,  # type: ignore[attr-defined]
                 r"Software\Microsoft\Windows\CurrentVersion\Run",
-                0, winreg.KEY_SET_VALUE
+                0,
+                winreg.KEY_SET_VALUE,  # type: ignore[attr-defined]
             )
-            winreg.DeleteValue(key, self.app_name)
-            winreg.CloseKey(key)
+            winreg.DeleteValue(key, self.app_name)  # type: ignore[attr-defined]
+            winreg.CloseKey(key)  # type: ignore[attr-defined]
             return True
         except OSError:
             return False
@@ -115,7 +127,7 @@ class StartupManager:
 </plist>"""
 
             os.makedirs(os.path.dirname(plist_path), exist_ok=True)
-            with open(plist_path, 'w') as f:
+            with open(plist_path, "w") as f:
                 f.write(plist_content)
             return True
         except Exception as e:
@@ -132,9 +144,7 @@ class StartupManager:
             return False
 
     def _get_macos_plist_path(self) -> str:
-        return os.path.expanduser(
-            "~/Library/LaunchAgents/com.parrator.app.plist"
-        )
+        return os.path.expanduser("~/Library/LaunchAgents/com.parrator.app.plist")
 
     # Linux implementation
     def _is_linux_startup_enabled(self) -> bool:
@@ -154,7 +164,7 @@ X-GNOME-Autostart-enabled=true
 """
 
             os.makedirs(os.path.dirname(desktop_path), exist_ok=True)
-            with open(desktop_path, 'w') as f:
+            with open(desktop_path, "w") as f:
                 f.write(desktop_content)
             return True
         except Exception as e:
