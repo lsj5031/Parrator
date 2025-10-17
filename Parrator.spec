@@ -27,6 +27,8 @@ a = Analysis(
     datas=datas,
 hiddenimports=[
         'onnxruntime.capi._pybind_state',
+        'pynput',
+        'pynput.keyboard',
         'parrator.hotkey_manager',
         'parrator.audio_recorder',
         'parrator.config',
