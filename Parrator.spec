@@ -3,6 +3,7 @@ import sys
 from PyInstaller.utils.hooks import (
         collect_dynamic_libs,
         collect_data_files,
+        collect_submodules,
 )
 
 block_cipher = None
@@ -24,16 +25,7 @@ a = Analysis(
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-    hiddenimports=[
-        'onnxruntime.capi._pybind_state',
-        'parrator.hotkey_manager',
-        'parrator.tray_app',
-        'parrator.audio_recorder',
-        'parrator.transcriber',
-        'parrator.notifications',
-        'parrator.startup',
-        'parrator.config',
-    ],
+hiddenimports=['onnxruntime.capi._pybind_state'] + collect_submodules('parrator'),
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
