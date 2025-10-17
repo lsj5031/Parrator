@@ -4,7 +4,6 @@ AI-powered text refinement for transcribed speech.
 
 import re
 import threading
-from typing import Optional
 
 from .config import Config
 

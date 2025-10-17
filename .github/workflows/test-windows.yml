@@ -55,7 +55,7 @@ jobs:
         echo "PyInstaller build completed successfully"
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: parrator-test
         path: dist/parrator-test.exe

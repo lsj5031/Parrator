@@ -186,7 +186,7 @@ class ParratorTrayApp:
 
         # Apply text refinement if enabled
         refined_text = self._refine_transcription(text)
-        
+
         if refined_text != text:
             print(f"Refined: {refined_text}")
 
@@ -208,10 +208,10 @@ class ParratorTrayApp:
         try:
             # Get current ASR model name
             asr_model = self.transcriber.model_name or ""
-            
+
             # Apply text refinement
             return self.text_refiner.refine_text(text, asr_model)
-            
+
         except Exception as e:
             print(f"Text refinement error: {e}")
             return text
@@ -261,7 +261,7 @@ class ParratorTrayApp:
         current_state = self.config.get('text_refinement.enabled', True)
         new_state = not current_state
         self.config.set('text_refinement.enabled', new_state)
-        
+
         if new_state:
             print("Text refinement enabled")
         else:
