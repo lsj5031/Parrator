@@ -16,7 +16,37 @@ class Config:
             "hotkey": "ctrl+shift+;",
             "model_name": "nemo-parakeet-tdt-0.6b-v2",
             "auto_paste": True,
-            "auto_start_with_system": False
+            "auto_start_with_system": False,
+            "enable_text_refinement": True,
+            "remove_filler_words": True,
+            "filler_words": [
+                "uh",
+                "um",
+                "er",
+                "ah",
+                "like",
+                "you know",
+                "I mean",
+                "sort of",
+                "kind of",
+                "right",
+                "yeah",
+                "yep",
+                "yup",
+                "hmm",
+                "hmm",
+                "well",
+                "so",
+                "anyway",
+                "basically",
+            ],
+            "text_refinement_models": {
+                "nemo-parakeet-tdt-0.6b-v2": True,
+                "nvidia/parakeet-tdt-0.6b-v2": True,
+                "openai/whisper-tiny": True,
+                "openai/whisper-base": True,
+                "openai/whisper-small": True,
+            },
         }
         self.config = self._load_config()
 
@@ -31,19 +61,19 @@ class Config:
 
     def _get_config_path(self) -> str:
         """Get path to config file."""
-        if os.name == 'nt':  # Windows
-            config_dir = os.path.expandvars('%APPDATA%\\Parrator')
+        if os.name == "nt":  # Windows
+            config_dir = os.path.expandvars("%APPDATA%\\Parrator")
         else:  # macOS/Linux
-            config_dir = os.path.expanduser('~/.config/parrator')
+            config_dir = os.path.expanduser("~/.config/parrator")
 
         os.makedirs(config_dir, exist_ok=True)
-        return os.path.join(config_dir, 'config.json')
+        return os.path.join(config_dir, "config.json")
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from file."""
         try:
             if os.path.exists(self.config_path):
-                with open(self.config_path, 'r') as f:
+                with open(self.config_path, "r") as f:
                     config = json.load(f)
                 # Ensure all defaults are present
                 for key, value in self.defaults.items():
@@ -64,7 +94,7 @@ class Config:
     def _save_config_dict(self, config_dict: Dict[str, Any]):
         """Save configuration dictionary to file."""
         try:
-            with open(self.config_path, 'w') as f:
+            with open(self.config_path, "w") as f:
                 json.dump(config_dict, f, indent=2)
         except Exception as e:
             print(f"Error saving config: {e}")

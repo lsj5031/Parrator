@@ -18,6 +18,7 @@ from .config import Config
 from .hotkey_manager import HotkeyManager
 from .notifications import NotificationManager
 from .startup import StartupManager
+from .text_refiner import TextRefiner
 from .transcriber import Transcriber
 
 
@@ -28,6 +29,7 @@ class ParratorTrayApp:
         self.config = Config()
         self.transcriber = Transcriber(self.config)
         self.audio_recorder = AudioRecorder(self.config)
+        self.text_refiner = TextRefiner(self.config)
         self.notification_manager = NotificationManager()
         self.startup_manager = StartupManager()
         self.hotkey_manager: Optional[HotkeyManager] = None
@@ -60,6 +62,7 @@ class ParratorTrayApp:
 
     def _load_model_async(self):
         """Load the transcription model in a background thread."""
+
         def load_model():
             if self.transcriber.load_model():
                 self.model_loaded = True
@@ -80,7 +83,7 @@ class ParratorTrayApp:
         except Exception as e:
             print(f"Could not load icon: {e}")
             # Create simple fallback icon
-            image = Image.new('RGB', (64, 64), color='blue')
+            image = Image.new("RGB", (64, 64), color="blue")
 
         # Create menu
         menu = pystray.Menu(
@@ -88,26 +91,26 @@ class ParratorTrayApp:
             pystray.MenuItem("Settings", self._show_settings),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
-                "Start with System",
-                self._toggle_startup,
-                checked=lambda item: self.startup_manager.is_enabled()
+                "Text Refinement",
+                self._toggle_text_refinement,
+                checked=lambda item: self.config.get('text_refinement.enabled', True),
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Quit", self._quit_application)
+            pystray.MenuItem(
+                "Start with System",
+                self._toggle_startup,
+                checked=lambda item: self.startup_manager.is_enabled(),
+            ),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Quit", self._quit_application),
         )
 
-        self.tray_icon = pystray.Icon(
-            "parrator",
-            image,
-            "Parrator - Loading...",
-            menu
-        )
+        self.tray_icon = pystray.Icon("parrator", image, "Parrator - Loading...", menu)
 
     def _setup_hotkeys(self):
         """Setup global hotkeys."""
-        hotkey_combo = self.config.get('hotkey', 'ctrl+shift+;')
-        self.hotkey_manager = HotkeyManager(
-            hotkey_combo, self._toggle_recording)
+        hotkey_combo = self.config.get("hotkey", "ctrl+shift+;")
+        self.hotkey_manager = HotkeyManager(hotkey_combo, self._toggle_recording)
 
         if not self.hotkey_manager.start():
             print(f"Could not register hotkey: {hotkey_combo}")
@@ -150,6 +153,7 @@ class ParratorTrayApp:
 
     def _process_audio_async(self, audio_data):
         """Process audio in background thread."""
+
         def process():
             try:
                 # Save temporary audio file
@@ -180,10 +184,16 @@ class ParratorTrayApp:
         """Handle successful transcription."""
         print(f"Transcribed: {text}")
 
+        # Apply text refinement if enabled
+        refined_text = self._refine_transcription(text)
+        
+        if refined_text != text:
+            print(f"Refined: {refined_text}")
+
         # Copy to clipboard
         try:
             import pyperclip
-            pyperclip.copy(text)
+            pyperclip.copy(refined_text)
             print("Copied to clipboard")
 
             # Auto-paste if enabled
@@ -193,12 +203,26 @@ class ParratorTrayApp:
         except Exception as e:
             print(f"Clipboard error: {e}")
 
+    def _refine_transcription(self, text: str) -> str:
+        """Refine transcription text using AI models."""
+        try:
+            # Get current ASR model name
+            asr_model = self.transcriber.model_name or ""
+            
+            # Apply text refinement
+            return self.text_refiner.refine_text(text, asr_model)
+            
+        except Exception as e:
+            print(f"Text refinement error: {e}")
+            return text
+
     def _auto_paste(self):
         """Automatically paste from clipboard."""
         try:
             import pyautogui
+
             time.sleep(0.1)
-            pyautogui.hotkey('ctrl', 'v')
+            pyautogui.hotkey("ctrl", "v")
             print("Auto-pasted")
         except Exception as e:
             print(f"Auto-paste failed: {e}")
@@ -232,6 +256,17 @@ class ParratorTrayApp:
         except Exception as e:
             print(f"Could not open settings: {e}")
 
+    def _toggle_text_refinement(self):
+        """Toggle text refinement on/off."""
+        current_state = self.config.get('text_refinement.enabled', True)
+        new_state = not current_state
+        self.config.set('text_refinement.enabled', new_state)
+        
+        if new_state:
+            print("Text refinement enabled")
+        else:
+            print("Text refinement disabled")
+
     def _toggle_startup(self):
         """Toggle startup with system."""
         if self.startup_manager.is_enabled():
@@ -253,12 +288,12 @@ class ParratorTrayApp:
 
     def _get_icon_path(self):
         """Get path to tray icon."""
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             base_path = sys._MEIPASS
         else:
             base_path = os.path.dirname(os.path.abspath(__file__))
 
-        return os.path.join(base_path, 'resources', 'icon.png')
+        return os.path.join(base_path, "resources", "icon.png")
 
     def cleanup(self):
         """Clean up resources."""

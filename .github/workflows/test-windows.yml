@@ -1,0 +1,72 @@
+name: Test Windows
+
+on:
+  push:
+    branches: [ master, main, feature/* ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Install dependencies
+      run: |
+        poetry install --with dev
+
+    - name: Run syntax checks
+      run: |
+        poetry run python -m py_compile parrator/*.py
+
+    - name: Run linting
+      run: |
+        poetry run ruff check parrator/
+
+    - name: Run type checking
+      run: |
+        poetry run mypy parrator/ --ignore-missing-imports
+
+    - name: Test text refiner import
+      run: |
+        poetry run python -c "
+import sys
+sys.path.insert(0, '.')
+from parrator.config import Config
+from parrator.text_refiner import TextRefiner
+print('Text refiner imports successfully')
+"
+
+    - name: Test tray app import
+      run: |
+        poetry run python -c "
+import sys
+sys.path.insert(0, '.')
+from parrator.tray_app import ParratorTrayApp
+print('Tray app imports successfully')
+"
+
+    - name: Test PyInstaller build
+      run: |
+        poetry run pyinstaller --onefile --windowed --name=parrator-test --add-data="parrator/resources;resources" parrator/__main__.py
+        echo "PyInstaller build completed successfully"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: parrator-test
+        path: dist/parrator-test.exe
