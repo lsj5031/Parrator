@@ -35,7 +35,7 @@ jobs:
 
       - name: Download Parakeet assets
         run: |
-          poetry run python -c "from huggingface_hub import hf_hub_download; repo_id='istupakov/parakeet-tdt-0.6b-v2-onnx'; [hf_hub_download(repo_id=repo_id, filename=name, local_dir='.') for name in ['encoder-model.onnx','decoder_joint-model.onnx','vocab.txt']]"
+          poetry run python -c "from huggingface_hub import hf_hub_download; repo_id='istupakov/parakeet-tdt-0.6b-v2-onnx'; [hf_hub_download(repo_id=repo_id, filename=name, local_dir='.', local_dir_use_symlinks=False) for name in ['encoder-model.onnx','decoder_joint-model.onnx','vocab.txt']]"
 
       - name: Build executable with PyInstaller
         run: |
