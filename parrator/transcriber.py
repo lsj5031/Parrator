@@ -22,11 +22,14 @@ class Transcriber:
     def load_model(self) -> bool:
         """Load the transcription model."""
         try:
-            model_name = self.config.get(
-                'model_name', 'nemo-parakeet-tdt-0.6b-v2')
+            model_name = self.config.get("model_name", "nemo-parakeet-tdt-0.6b-v2")
 
             # Get available ONNX providers
             providers = self._get_providers()
+
+            # Check if local model files exist (for PyInstaller builds)
+            if self._try_load_local_model(providers):
+                return True
 
             print(f"Loading model: {model_name}")
             self.model = load_model(model_name, providers=providers)
@@ -54,10 +57,10 @@ class Transcriber:
             if isinstance(result, str):
                 text = result.strip()
             elif isinstance(result, list) and result:
-                if isinstance(result[0], dict) and 'text' in result[0]:
-                    text = ' '.join(s.get('text', '') for s in result).strip()
+                if isinstance(result[0], dict) and "text" in result[0]:
+                    text = " ".join(s.get("text", "") for s in result).strip()
                 else:
-                    text = ' '.join(str(s) for s in result).strip()
+                    text = " ".join(str(s) for s in result).strip()
             else:
                 text = str(result).strip()
 
@@ -71,11 +74,36 @@ class Transcriber:
         """Get ONNX runtime providers in preferred order."""
         available = ort.get_available_providers()
         preferred = [
-            'DmlExecutionProvider',    # DirectML (Windows/WSL)
-            'ROCMExecutionProvider',   # AMD GPU
-            'CUDAExecutionProvider',   # NVIDIA GPU
-            'CPUExecutionProvider'     # CPU fallback
+            "DmlExecutionProvider",  # DirectML (Windows/WSL)
+            "ROCMExecutionProvider",  # AMD GPU
+            "CUDAExecutionProvider",  # NVIDIA GPU
+            "CPUExecutionProvider",  # CPU fallback
         ]
 
         providers = [p for p in preferred if p in available]
-        return providers or ['CPUExecutionProvider']
+        return providers or ["CPUExecutionProvider"]
+
+    def _try_load_local_model(self, providers) -> bool:
+        """Try to load model from local files (for PyInstaller builds)."""
+        try:
+            # Check if model files exist in current directory
+            encoder_path = "encoder-model.onnx"
+            decoder_path = "decoder_joint-model.onnx"
+            vocab_path = "vocab.txt"
+
+            if all(os.path.exists(f) for f in [encoder_path, decoder_path, vocab_path]):
+                print("Loading model from local files...")
+                self.model = load_model(
+                    "nemo-parakeet-tdt-0.6b-v2",
+                    encoder_path=encoder_path,
+                    decoder_path=decoder_path,
+                    vocab_path=vocab_path,
+                    providers=providers,
+                )
+                self.model_name = "nemo-parakeet-tdt-0.6b-v2 (local)"
+                print("Local model loaded successfully")
+                return True
+            return False
+        except Exception as e:
+            print(f"Failed to load local model: {e}")
+            return False
