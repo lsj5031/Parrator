@@ -15,6 +15,11 @@ class Config:
         self.defaults = {
             "hotkey": "ctrl+shift+;",
             "model_name": "nemo-parakeet-tdt-0.6b-v2",
+            "backend": "onnx",
+            # Secondary Mandarin (FunASR) hotkey and model (config-only fields)
+            "hotkey_mandarin": "ctrl+alt+m",
+            "mandarin_backend": "funasr",
+            "mandarin_model_name": "funasr/paraformer-zh",
             "auto_paste": True,
             "auto_start_with_system": False,
             "enable_text_refinement": True,
@@ -46,6 +51,8 @@ class Config:
                 "openai/whisper-tiny": True,
                 "openai/whisper-base": True,
                 "openai/whisper-small": True,
+                "funasr/paraformer-zh": True,
+                "funasr/whisper-large-v3": True,
             },
         }
         self.config = self._load_config()

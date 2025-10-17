@@ -28,14 +28,17 @@ class ParratorTrayApp:
     def __init__(self):
         self.config = Config()
         self.transcriber = Transcriber(self.config)
+        self.transcriber_mandarin: Optional[Transcriber] = None
         self.audio_recorder = AudioRecorder(self.config)
         self.text_refiner = TextRefiner(self.config)
         self.notification_manager = NotificationManager()
         self.startup_manager = StartupManager()
         self.hotkey_manager: Optional[HotkeyManager] = None
+        self.hotkey_manager_zh: Optional[HotkeyManager] = None
         self.tray_icon: Optional[pystray.Icon] = None
         self.is_recording = False
         self.model_loaded = False
+        self.active_transcriber: Optional[str] = None  # 'en' or 'zh'
 
     def start(self):
         """Start the application."""
@@ -50,7 +53,11 @@ class ParratorTrayApp:
         # Setup hotkeys
         self._setup_hotkeys()
 
-        print(f"Ready! Press {self.config.get('hotkey')} to record")
+        hotkey_label = self.config.get("hotkey")
+        hotkey_label_zh = self.config.get("hotkey_mandarin", "ctrl+alt+m")
+        print(
+            f"Ready! Press {hotkey_label} (EN) or {hotkey_label_zh} (ZH) to record"
+        )
 
         # Run tray (this blocks)
         try:
@@ -88,6 +95,7 @@ class ParratorTrayApp:
         # Create menu
         menu = pystray.Menu(
             pystray.MenuItem("Toggle Recording", self._toggle_recording),
+            # Secondary Mandarin toggle via config-only hotkey; keep menu minimal
             pystray.MenuItem("Settings", self._show_settings),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
@@ -109,11 +117,21 @@ class ParratorTrayApp:
 
     def _setup_hotkeys(self):
         """Setup global hotkeys."""
-        hotkey_combo = self.config.get("hotkey", "ctrl+shift+;")
-        self.hotkey_manager = HotkeyManager(hotkey_combo, self._toggle_recording)
+        hotkey_combo_en = self.config.get("hotkey", "ctrl+shift+;")
+        self.hotkey_manager = HotkeyManager(hotkey_combo_en, self._toggle_recording)
 
         if not self.hotkey_manager.start():
-            print(f"Could not register hotkey: {hotkey_combo}")
+            print(f"Could not register hotkey: {hotkey_combo_en}")
+
+        if Transcriber.funasr_supported():
+            hotkey_combo_zh = self.config.get("hotkey_mandarin", "ctrl+alt+m")
+            self.hotkey_manager_zh = HotkeyManager(
+                hotkey_combo_zh, self._toggle_recording_mandarin
+            )
+            if not self.hotkey_manager_zh.start():
+                print(f"Could not register mandarin hotkey: {hotkey_combo_zh}")
+        else:
+            print("FunASR dependencies not installed; Mandarin hotkey disabled")
 
     def _toggle_recording(self):
         """Toggle recording state."""
@@ -122,6 +140,33 @@ class ParratorTrayApp:
             return
 
         if not self.is_recording:
+            self.active_transcriber = "en"
+            self._start_recording()
+        else:
+            self._stop_recording()
+
+    def _toggle_recording_mandarin(self):
+        """Toggle recording for Mandarin using FunASR (lazy-load)."""
+        if not Transcriber.funasr_supported():
+            print(
+                "FunASR backend unavailable; install optional dependencies to "
+                "enable Mandarin hotkey"
+            )
+            return
+
+        if self.transcriber_mandarin is None:
+            backend = self.config.get("mandarin_backend", "funasr")
+            model_name = self.config.get("mandarin_model_name", "funasr/paraformer-zh")
+            self.transcriber_mandarin = Transcriber(
+                self.config, backend=backend, model_name=model_name
+            )
+            if not self.transcriber_mandarin.load_model():
+                print("Failed to load Mandarin model")
+                self.transcriber_mandarin = None
+                return
+
+        if not self.is_recording:
+            self.active_transcriber = "zh"
             self._start_recording()
         else:
             self._stop_recording()
@@ -147,11 +192,12 @@ class ParratorTrayApp:
         audio_data = self.audio_recorder.stop_recording()
 
         if audio_data is not None:
-            self._process_audio_async(audio_data)
+            selected = self.active_transcriber or "en"
+            self._process_audio_async(audio_data, transcriber_id=selected)
         else:
             print("No audio data captured")
 
-    def _process_audio_async(self, audio_data):
+    def _process_audio_async(self, audio_data, transcriber_id: str = "en"):
         """Process audio in background thread."""
 
         def process():
@@ -163,14 +209,17 @@ class ParratorTrayApp:
                     return
 
                 # Transcribe
-                success, text = self.transcriber.transcribe_file(temp_path)
+                if transcriber_id == "zh" and self.transcriber_mandarin is not None:
+                    success, text = self.transcriber_mandarin.transcribe_file(temp_path)
+                else:
+                    success, text = self.transcriber.transcribe_file(temp_path)
 
                 # Cleanup temp file
                 with contextlib.suppress(Exception):
                     os.remove(temp_path)
 
                 if success and text:
-                    self._handle_transcription_result(text)
+                    self._handle_transcription_result(text, transcriber_id)
                 else:
                     print("Transcription failed")
 
@@ -180,12 +229,12 @@ class ParratorTrayApp:
         thread = threading.Thread(target=process, daemon=True)
         thread.start()
 
-    def _handle_transcription_result(self, text: str):
+    def _handle_transcription_result(self, text: str, transcriber_id: str = "en"):
         """Handle successful transcription."""
         print(f"Transcribed: {text}")
 
         # Apply text refinement if enabled
-        refined_text = self._refine_transcription(text)
+        refined_text = self._refine_transcription(text, transcriber_id)
 
         if refined_text != text:
             print(f"Refined: {refined_text}")
@@ -203,11 +252,14 @@ class ParratorTrayApp:
         except Exception as e:
             print(f"Clipboard error: {e}")
 
-    def _refine_transcription(self, text: str) -> str:
+    def _refine_transcription(self, text: str, transcriber_id: str = "en") -> str:
         """Refine transcription text using AI models."""
         try:
             # Get current ASR model name
-            asr_model = self.transcriber.model_name or ""
+            if transcriber_id == "zh" and self.transcriber_mandarin is not None:
+                asr_model = self.transcriber_mandarin.model_name or ""
+            else:
+                asr_model = self.transcriber.model_name or ""
 
             # Apply text refinement
             return self.text_refiner.refine_text(text, asr_model)
@@ -299,5 +351,7 @@ class ParratorTrayApp:
         """Clean up resources."""
         if self.hotkey_manager:
             self.hotkey_manager.stop()
+        if self.hotkey_manager_zh:
+            self.hotkey_manager_zh.stop()
         if self.audio_recorder:
             self.audio_recorder.cleanup()

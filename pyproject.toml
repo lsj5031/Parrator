@@ -29,6 +29,19 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[tool.poetry.group.funasr]
+optional = true
+
+[tool.poetry.group.funasr.dependencies]
+funasr = {version = ">=1.12.0,<2.0.0"}
+modelscope = {version = ">=1.21.0,<2.0.0"}
+torch = {version = ">=2.4,<2.6", source = "pytorch-cpu", markers = "platform_system == 'Windows'"}
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.11"
 mypy = "^1.15.0"

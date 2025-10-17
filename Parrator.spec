@@ -21,23 +21,44 @@ datas = [
 # Binaries: dynamic libs from onnxruntime
 binaries = collect_dynamic_libs('onnxruntime')
 
+funasr_modules = []
+modelscope_modules = []
+
+try:
+    import funasr  # noqa: F401
+
+    funasr_modules = collect_submodules('funasr')
+except Exception:
+    pass
+
+try:
+    import modelscope  # noqa: F401
+
+    modelscope_modules = collect_submodules('modelscope')
+except Exception:
+    pass
+
 a = Analysis(
     ['parrator/__main__.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-hiddenimports=[
-        'onnxruntime.capi._pybind_state',
-        'pynput',
-        'pynput.keyboard',
-        'parrator.hotkey_manager',
-        'parrator.audio_recorder',
-        'parrator.config',
-        'parrator.transcriber',
-        'parrator.notifications',
-        'parrator.startup',
-        'parrator.tray_app'
-    ],
+    hiddenimports=(
+        [
+            'onnxruntime.capi._pybind_state',
+            'pynput',
+            'pynput.keyboard',
+            'parrator.hotkey_manager',
+            'parrator.audio_recorder',
+            'parrator.config',
+            'parrator.transcriber',
+            'parrator.notifications',
+            'parrator.startup',
+            'parrator.tray_app',
+        ]
+        + funasr_modules
+        + modelscope_modules
+    ),
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
