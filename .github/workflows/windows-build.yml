@@ -31,10 +31,16 @@ jobs:
         run: |
           echo "POETRY_CACHE_DIR=${{ runner.temp }}\\poetry-cache" >> $Env:GITHUB_ENV
 
+      # Use the committed lockfile; do not mutate it in build
+      - name: Validate lock (no changes)
+        shell: bash
+        run: |
+          poetry lock --check --no-interaction
+
       - name: Install dependencies
         shell: bash
         run: |
-          poetry install --no-interaction --no-root
+          poetry install --with dev --no-interaction --no-root
 
       - name: Download Parakeet assets
         shell: bash

@@ -27,12 +27,15 @@ jobs:
         version: latest
         virtualenvs-create: true
         virtualenvs-in-project: true
-        poetry-install: false
 
     - name: Verify Poetry installation
       run: |
         poetry --version
         echo $PATH
+
+    - name: Validate lock (no changes)
+      run: |
+        poetry lock --check --no-interaction
 
     - name: Install dependencies
       run: |
