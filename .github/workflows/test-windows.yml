@@ -1,7 +1,9 @@
 name: Test Windows
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   test:
