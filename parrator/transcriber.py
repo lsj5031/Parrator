@@ -1,10 +1,10 @@
 """Transcription service supporting ONNX and optional FunASR backends."""
 
 import os
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import onnxruntime as ort  # type: ignore[import]
-from onnx_asr import TextResultsAsrAdapter, load_model  # type: ignore[import]
+from onnx_asr import load_model  # type: ignore[import]
 
 try:
     import torch  # type: ignore[import]
@@ -31,7 +31,7 @@ class Transcriber:
         self.config = config
         self._override_backend = backend
         self._override_model_name = model_name
-        self.model: Optional[Union[TextResultsAsrAdapter, Any]] = None
+        self.model: Optional[Any] = None
         self.model_name: Optional[str] = None
         self.backend: Optional[str] = None
 
@@ -188,11 +188,10 @@ class Transcriber:
 
             if all(os.path.exists(f) for f in [encoder_path, decoder_path, vocab_path]):
                 print("Loading model from local files...")
+                model_dir = os.path.dirname(os.path.abspath(encoder_path))
                 self.model = load_model(
                     "nemo-parakeet-tdt-0.6b-v2",
-                    encoder_path=encoder_path,
-                    decoder_path=decoder_path,
-                    vocab_path=vocab_path,
+                    path=model_dir,
                     providers=providers,
                 )
                 self.model_name = "nemo-parakeet-tdt-0.6b-v2 (local)"
