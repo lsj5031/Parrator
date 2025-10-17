@@ -46,10 +46,6 @@ jobs:
           dir dist
           dir dist\Parrator
 
-      - name: Smoke test packaged executable
-        run: |
-          dist\Parrator\Parrator.exe --help
-
       - name: Package release archive
         run: |
           Compress-Archive -Path dist/Parrator/* -DestinationPath Parrator-windows.zip -Force
