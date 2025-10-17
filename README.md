@@ -140,6 +140,16 @@ python -c "import sounddevice; print(sounddevice.query_devices())"
 poetry run pyinstaller Parrator.spec
 ```
 
+### Bundling FunASR Dependencies (Chinese Support)
+
+1. Build on an environment with Python 3.11+ and Poetry (self-hosted runner or local workstation).
+2. Install dependencies including FunASR before running PyInstaller:
+   ```bash
+   poetry install --with funasr
+   ```
+3. Run the build command from the same environment so PyInstaller picks up the installed `funasr`, `modelscope`, and `torch` packages.
+4. Ship the generated `dist/Parrator.exe`; end users will not need Python or Poetry because the FunASR runtime is embedded.
+
 ## Changelog
 
 ### v0.2.0 (Current)
