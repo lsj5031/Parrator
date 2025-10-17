@@ -39,7 +39,16 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          poetry run pyinstaller Parrator.spec
+          poetry run pyinstaller --log-level=DEBUG Parrator.spec
+
+      - name: List build contents
+        run: |
+          dir dist
+          dir dist\Parrator
+
+      - name: Smoke test packaged executable
+        run: |
+          dist\Parrator\Parrator.exe --help
 
       - name: Package release archive
         run: |
