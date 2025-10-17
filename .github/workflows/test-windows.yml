@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
     - uses: actions/checkout@v4
@@ -24,6 +27,12 @@ jobs:
         version: latest
         virtualenvs-create: true
         virtualenvs-in-project: true
+        poetry-install: false
+
+    - name: Verify Poetry installation
+      run: |
+        poetry --version
+        echo $PATH
 
     - name: Install dependencies
       run: |
