@@ -7,7 +7,7 @@ from typing import Optional
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from onnx_asr import load_model
 from pydantic import BaseModel
@@ -109,7 +109,10 @@ async def health_check():
 
 
 @app.post("/v1/transcribe", response_model=TranscribeResponse)
-async def transcribe(request: TranscribeRequest, raw_data: bytes = b""):
+async def transcribe(
+    request: TranscribeRequest = Depends(),
+    raw_data: bytes = Body(..., media_type="application/octet-stream"),
+):
     """Transcribe audio data."""
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
