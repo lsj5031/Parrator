@@ -25,7 +25,16 @@ a = Analysis(
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-hiddenimports=['onnxruntime.capi._pybind_state'] + collect_submodules('parrator'),
+hiddenimports=[
+        'onnxruntime.capi._pybind_state',
+        'parrator.hotkey_manager',
+        'parrator.audio_recorder',
+        'parrator.config',
+        'parrator.transcriber',
+        'parrator.notifications',
+        'parrator.startup',
+        'parrator.tray_app'
+    ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
