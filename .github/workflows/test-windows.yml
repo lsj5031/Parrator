@@ -43,22 +43,11 @@ jobs:
 
     - name: Test text refiner import
       run: |
-        poetry run python -c "
-import sys
-sys.path.insert(0, '.')
-from parrator.config import Config
-from parrator.text_refiner import TextRefiner
-print('Text refiner imports successfully')
-"
+        poetry run python -c "import sys; sys.path.insert(0, '.'); from parrator.config import Config; from parrator.text_refiner import TextRefiner; print('Text refiner imports successfully')"
 
     - name: Test tray app import
       run: |
-        poetry run python -c "
-import sys
-sys.path.insert(0, '.')
-from parrator.tray_app import ParratorTrayApp
-print('Tray app imports successfully')
-"
+        poetry run python -c "import sys; sys.path.insert(0, '.'); from parrator.tray_app import ParratorTrayApp; print('Tray app imports successfully')"
 
     - name: Test PyInstaller build
       run: |
