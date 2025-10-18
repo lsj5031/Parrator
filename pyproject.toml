@@ -22,6 +22,7 @@ dependencies = [
     "pyautogui (>=0.9.54,<1.0.0)",
     "pystray (>=0.19.5,<0.20.0)",
     "pynput (>=1.8.1,<2.0.0)",
+    "requests (>=2.31.0,<3.0.0)",
 ]
 
 [tool.poetry.group.textrefinement]
@@ -54,6 +55,37 @@ ruff = "^0.11.11"
 mypy = "^1.15.0"
 pre-commit = "^4.2.0"
 pyinstaller = "^6.13.0"
+# Development and debugging tools
+pytest = "^8.0.0"
+pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.25.0"
+pytest-mock = "^3.14.0"
+# Performance profiling
+py-spy = "^0.3.14"
+memory-profiler = "^0.61.0"
+line-profiler = "^4.1.1"
+viztracer = "^0.16.1"
+pyinstrument = "^5.0.0"
+# Jupyter and data analysis
+jupyterlab = "^4.3.0"
+ipython = "^8.29.0"
+notebook = "^7.3.0"
+matplotlib = "^3.9.2"
+seaborn = "^0.13.2"
+plotly = "^5.24.1"
+# Model development and analysis
+netron = "^7.0.0"
+tensorboard = "^2.18.0"
+# Windows-specific development
+pywin32 = "^308"
+wmi = "^1.5.1"
+psutil = "^6.1.0"
+# API testing
+httpx = "^0.28.0"
+websockets = "^14.1"
+# Documentation
+sphinx = "^8.1.0"
+sphinx-rtd-theme = "^3.0.0"
 
 [tool.ruff]
 line-length = 88
