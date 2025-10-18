@@ -1,0 +1,186 @@
+# Docker Compose configuration for Parrator Windows Development Environment
+# Provides multi-service development setup with integrated inference server
+
+version: '3.8'
+
+services:
+  # Main development container
+  parrator-dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: parrator-dev
+    hostname: parrator-dev
+    image: parrator-dev:latest
+
+    # Windows-specific configuration
+    platform: windows/amd64
+    isolation: process
+    security_opt:
+      - seccomp:unconfined
+
+    # GPU access for DirectML
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: "class://GPU"
+              count: all
+              capabilities: [gpu]
+
+    # Environment variables
+    environment:
+      - PYTHONPATH=C:\app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONIOENCODING=utf-8
+      - MODELS_PATH=C:\app\models
+      - LOGS_PATH=C:\app\logs
+      - AUDIO_PATH=C:\app\audio
+      - INFERENCE_SERVER_HOST=localhost
+      - INFERENCE_SERVER_PORT=5005
+      - JUPYTER_HOST=localhost
+      - JUPYTER_PORT=8888
+      - TENSORBOARD_HOST=localhost
+      - TENSORBOARD_PORT=6006
+      - LOG_LEVEL=INFO
+      - POETRY_VIRTUALENVS_CREATE=false
+
+    # Port mappings
+    ports:
+      - "5005:5005"  # Inference Server
+      - "8000:8000"  # VS Code Server
+      - "8888:8888"  # Jupyter Lab
+      - "6006:6006"  # TensorBoard
+
+    # Volume mounts
+    volumes:
+      - ..\:/app:cached
+      - parrator-models:C:\app\models:cached
+      - parrator-audio:C:\app\audio:cached
+      - parrator-logs:C:\app\logs:cached
+      - parrator-temp:C:\app\temp:cached
+
+    # Working directory
+    working_dir: C:\app
+
+    # User configuration
+    user: ContainerUser
+
+    # Keep container running
+    command: pwsh -NoLogo -Command "& C:/app/startup.ps1"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "pwsh", "-NoLogo", "-Command", "try { $response = Invoke-WebRequest -Uri 'http://localhost:5005/healthz' -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Network configuration
+    networks:
+      - parrator-network
+
+    # Labels for organization
+    labels:
+      - "com.docker.compose.service=parrator-dev"
+      - "parrator.service.type=development"
+      - "parrator.service.os=windows"
+      - "parrator.service.gpu=directml"
+
+  # Optional: Standalone inference server for testing
+  inference-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.win
+    container_name: parrator-inference-server
+    hostname: parrator-inference
+    image: parrator-inference-server:latest
+
+    # Windows-specific configuration
+    platform: windows/amd64
+    isolation: process
+
+    # GPU access for DirectML
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: "class://GPU"
+              count: all
+              capabilities: [gpu]
+
+    # Environment variables
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5005
+      - PYTHONPATH=C:\app
+      - MODELS_PATH=C:\app\models
+      - LOG_LEVEL=INFO
+
+    # Port mapping (different port to avoid conflict)
+    ports:
+      - "5006:5005"  # Standalone inference server
+
+    # Volume mounts
+    volumes:
+      - parrator-models:C:\app\models:cached
+      - parrator-logs:C:\app\logs:cached
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "pwsh", "-NoLogo", "-Command", "try { $response = Invoke-WebRequest -Uri 'http://localhost:5005/healthz' -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Network configuration
+    networks:
+      - parrator-network
+
+    # Labels
+    labels:
+      - "com.docker.compose.service=inference-server"
+      - "parrator.service.type=inference"
+      - "parrator.service.os=windows"
+      - "parrator.service.gpu=directml"
+
+    # This service is optional and won't start by default
+    profiles:
+      - inference
+
+# Named volumes for persistent data
+volumes:
+  parrator-models:
+    driver: local
+    labels:
+      - "parrator.volume.type=models"
+      - "parrator.volume.persistence=true"
+
+  parrator-audio:
+    driver: local
+    labels:
+      - "parrator.volume.type=audio"
+      - "parrator.volume.persistence=true"
+
+  parrator-logs:
+    driver: local
+    labels:
+      - "parrator.volume.type=logs"
+      - "parrator.volume.persistence=true"
+
+  parrator-temp:
+    driver: local
+    labels:
+      - "parrator.volume.type=temp"
+      - "parrator.volume.persistence=false"
+
+# Network configuration
+networks:
+  parrator-network:
+    driver: nat
+    labels:
+      - "parrator.network.type=development"
+      - "parrator.network.isolation=nat"
