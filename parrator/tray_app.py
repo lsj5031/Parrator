@@ -14,6 +14,7 @@ import pystray  # type: ignore[import-untyped]
 from PIL import Image  # type: ignore[import]
 
 from .audio_recorder import AudioRecorder
+from .cleanup import CleanupManager
 from .config import Config
 from .hotkey_manager import HotkeyManager
 from .notifications import NotificationManager
@@ -31,6 +32,7 @@ class ParratorTrayApp:
         self.transcriber_mandarin: Optional[Transcriber] = None
         self.audio_recorder = AudioRecorder(self.config)
         self.text_refiner = TextRefiner(self.config)
+        self.cleanup_manager = CleanupManager(self.config.config)
         self.notification_manager = NotificationManager()
         self.startup_manager = StartupManager()
         self.hotkey_manager: Optional[HotkeyManager] = None
@@ -101,6 +103,11 @@ class ParratorTrayApp:
                 "Text Refinement",
                 self._toggle_text_refinement,
                 checked=lambda item: self.config.get("text_refinement.enabled", True),
+            ),
+            pystray.MenuItem(
+                "Smart Cleanup",
+                self._toggle_smart_cleanup,
+                checked=lambda item: self.config.get("cleanup.enabled", True),
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
@@ -232,11 +239,20 @@ class ParratorTrayApp:
         """Handle successful transcription."""
         print(f"Transcribed: {text}")
 
-        # Apply text refinement if enabled
-        refined_text = self._refine_transcription(text, transcriber_id)
+        # Check for Shift key bypass
+        bypass_cleanup = self._is_shift_pressed()
+
+        # Apply smart cleanup if enabled and not bypassed
+        cleaned_text = self._apply_smart_cleanup(text, bypass=bypass_cleanup)
+
+        # Apply legacy text refinement if enabled (for compatibility)
+        if not bypass_cleanup:
+            refined_text = self._refine_transcription(cleaned_text, transcriber_id)
+        else:
+            refined_text = cleaned_text
 
         if refined_text != text:
-            print(f"Refined: {refined_text}")
+            print(f"Processed: {refined_text}")
 
         # Copy to clipboard
         try:
@@ -267,6 +283,40 @@ class ParratorTrayApp:
         except Exception as e:
             print(f"Text refinement error: {e}")
             return text
+
+    def _apply_smart_cleanup(self, text: str, bypass: bool = False) -> str:
+        """Apply smart cleanup to transcribed text."""
+        if bypass or not text or not text.strip():
+            return text
+
+        try:
+            # Get cleanup mode from config
+            cleanup_config = self.config.get("cleanup", {})
+            mode = cleanup_config.get("mode", "standard")
+
+            # Apply cleanup
+            return self.cleanup_manager.clean_text(text, mode, bypass)
+
+        except Exception as e:
+            print(f"Smart cleanup error: {e}")
+            return text
+
+    def _is_shift_pressed(self) -> bool:
+        """Check if Shift key is currently pressed (for bypass)."""
+        try:
+            import keyboard  # type: ignore[import-untyped]
+            return keyboard.is_pressed('shift')
+        except ImportError:
+            # Fallback: try with pyautogui
+            try:
+                import pyautogui  # type: ignore[import-untyped]
+                # pyautogui doesn't have a direct way to check key state
+                # so we'll return False and rely on config-based bypass
+                return False
+            except ImportError:
+                return False
+        except Exception:
+            return False
 
     def _auto_paste(self):
         """Automatically paste from clipboard."""
@@ -318,6 +368,21 @@ class ParratorTrayApp:
             print("Text refinement enabled")
         else:
             print("Text refinement disabled")
+
+    def _toggle_smart_cleanup(self):
+        """Toggle smart cleanup on/off."""
+        current_state = self.config.get("cleanup.enabled", True)
+        new_state = not current_state
+        self.config.set("cleanup.enabled", new_state)
+
+        if new_state:
+            print("Smart cleanup enabled")
+            # Show available engines
+            status = self.cleanup_manager.get_engine_status()
+            available = [name for name, status_text in status.items() if "available" in status_text.lower()]
+            print(f"Available engines: {', '.join(available)}")
+        else:
+            print("Smart cleanup disabled")
 
     def _toggle_startup(self):
         """Toggle startup with system."""
