@@ -57,6 +57,32 @@ class Config:
                 "funasr/paraformer-zh": True,
                 "funasr/whisper-large-v3": True,
             },
+            "cleanup": {
+                "enabled": True,
+                "mode": "standard",
+                "engine": "rule",
+                "local_llm_endpoint": "http://127.0.0.1:11434",
+                "local_llm_model": "llama3.2:3b",
+                "local_llm_timeout": 30,
+                "http_endpoint": "http://127.0.0.1:5055",
+                "http_timeout": 10,
+                "http_api_key": "",
+                "http_headers": {},
+                "filler_words": [
+                    "um", "uh", "er", "ah", "like", "you know",
+                    "i mean", "sort of", "kind of", "right", "yeah",
+                    "yep", "yup", "hmm", "well", "so", "anyway", "basically"
+                ],
+                "preserve_patterns": {
+                    "code": True,
+                    "urls": True,
+                    "emails": True,
+                    "hashtags": True,
+                    "emojis": True,
+                    "all_caps": True
+                },
+                "bypass_key": "shift"
+            },
         }
         self.config = self._load_config()
 
