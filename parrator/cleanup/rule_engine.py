@@ -6,7 +6,7 @@ Provides fast, offline text cleaning using regex patterns and heuristics.
 
 import re
 import time
-from typing import Dict, Any, List, Set, Pattern
+from typing import Any, Dict
 
 from .engine_base import CleanupEngineBase
 
@@ -104,7 +104,8 @@ class RuleEngine(CleanupEngineBase):
 
         if chars_saved > 0:
             print(
-                f"Cleaned: {original_length} → {len(text)} chars • {processing_time:.0f}ms"
+                f"Cleaned: {original_length} → {len(text)} "
+                f"chars • {processing_time:.0f}ms"
             )
 
         return text.strip()
@@ -115,7 +116,6 @@ class RuleEngine(CleanupEngineBase):
             return ""
 
         # Store preserved segments with placeholders
-        preserved_segments = []
         placeholder_map = {}
         placeholder_counter = 0
 
@@ -134,11 +134,12 @@ class RuleEngine(CleanupEngineBase):
         # Sort by start position and process from right to left to avoid position shifts
         all_matches.sort(key=lambda x: x[0], reverse=True)
 
-        for start, end, segment, pattern in all_matches:
+        for placeholder_counter, (start, end, segment, _pattern) in enumerate(
+            all_matches
+        ):
             placeholder = f"__PRESERVED_{placeholder_counter}__"
             placeholder_map[placeholder] = segment
             text = text[:start] + placeholder + text[end:]
-            placeholder_counter += 1
 
         # Normalize whitespace (but be careful with placeholders)
         text = self.whitespace_pattern.sub(" ", text.strip())
@@ -208,7 +209,6 @@ class RuleEngine(CleanupEngineBase):
             return text
 
         # Store preserved segments with placeholders to avoid modifying them
-        preserved_segments = []
         placeholder_map = {}
         placeholder_counter = 0
 
@@ -217,10 +217,12 @@ class RuleEngine(CleanupEngineBase):
         text = re.sub(r"\blink\s+(https?://)", r"link: \1", text, flags=re.IGNORECASE)
 
         # Add sentence boundaries where appropriate
-        # Add period before sentences that start with capital letters but lack punctuation
+        # Add period before sentences that start with capital letters
+        # but lack punctuation
         text = re.sub(r"([a-z])\s+([A-Z][a-z]+)", r"\1. \2", text)
 
-        # Capitalize standalone "thanks" at the end of sentences (without period - final cleanup will add it)
+        # Capitalize standalone "thanks" at the end of sentences
+        # (without period - final cleanup will add it)
         text = re.sub(r"\bthanks\b\.?$", "Thanks", text)
 
         # Find all segments to preserve
@@ -232,11 +234,10 @@ class RuleEngine(CleanupEngineBase):
         # Sort by start position and process from right to left
         all_matches.sort(key=lambda x: x[0], reverse=True)
 
-        for start, end, segment in all_matches:
+        for placeholder_counter, (start, end, segment) in enumerate(all_matches):
             placeholder = f"__FINAL_PRESERVED_{placeholder_counter}__"
             placeholder_map[placeholder] = segment
             text = text[:start] + placeholder + text[end:]
-            placeholder_counter += 1
 
         # Final whitespace cleanup
         text = self.whitespace_pattern.sub(" ", text.strip())
@@ -261,7 +262,8 @@ class RuleEngine(CleanupEngineBase):
         text = re.sub(r"\blink\s+(https?://)", r"link: \1", text, flags=re.IGNORECASE)
 
         # Add sentence boundaries where appropriate
-        # Add period before sentences that start with capital letters but lack punctuation
+        # Add period before sentences that start with capital letters
+        # but lack punctuation
         text = re.sub(r"([a-z])\s+([A-Z][a-z]+)", r"\1. \2", text)
 
         # Restore preserved segments
@@ -330,7 +332,8 @@ class RuleEngine(CleanupEngineBase):
             r"([.!?])\s+([a-z])", lambda m: m.group(1) + " " + m.group(2).upper(), text
         )
 
-        # Add period before words like "thanks" that follow filler removal and should be new sentences
+        # Add period before words like "thanks" that follow filler removal
+        # and should be new sentences
         # Common words that start new sentences after filler removal
         sentence_starters = [
             "thanks",

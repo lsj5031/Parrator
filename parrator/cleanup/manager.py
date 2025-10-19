@@ -3,12 +3,12 @@ Cleanup manager for coordinating different cleanup engines.
 """
 
 import time
-from typing import Dict, Any, Optional, Union
+from typing import Any, Dict, Optional
 
 from .engine_base import CleanupEngineBase
-from .rule_engine import RuleEngine
-from .llm_engine import LocalLLMEngine
 from .http_engine import HttpEngine
+from .llm_engine import LocalLLMEngine
+from .rule_engine import RuleEngine
 
 
 class CleanupManager:
@@ -107,19 +107,17 @@ class CleanupManager:
         cleaned_text = self._try_engine(engine_name, text, mode or "standard")
 
         # If primary engine fails, fallback to rule engine
-        if cleaned_text == text:
-            if engine_name != "rule":
-                print(
-                    f"Primary engine '{engine_name}' failed, falling back to rule engine"
-                )
-                cleaned_text = self._try_engine("rule", text, mode or "standard")
+        if cleaned_text == text and engine_name != "rule":
+            print(f"Primary engine '{engine_name}' failed, falling back to rule engine")
+            cleaned_text = self._try_engine("rule", text, mode or "standard")
 
         processing_time = (time.time() - start_time) * 1000
         chars_saved = original_length - len(cleaned_text)
 
         if chars_saved > 0:
             print(
-                f"Cleanup complete: {original_length} → {len(cleaned_text)} chars • {processing_time:.0f}ms"
+                f"Cleanup complete: {original_length} → {len(cleaned_text)} "
+                f"chars • {processing_time:.0f}ms"
             )
 
         return cleaned_text

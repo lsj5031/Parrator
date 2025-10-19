@@ -305,16 +305,12 @@ class ParratorTrayApp:
         """Check if Shift key is currently pressed (for bypass)."""
         try:
             import keyboard  # type: ignore[import-untyped]
-            return keyboard.is_pressed('shift')
+
+            return keyboard.is_pressed("shift")
         except ImportError:
-            # Fallback: try with pyautogui
-            try:
-                import pyautogui  # type: ignore[import-untyped]
-                # pyautogui doesn't have a direct way to check key state
-                # so we'll return False and rely on config-based bypass
-                return False
-            except ImportError:
-                return False
+            # Fallback: no direct way to check key state
+            # Return False and rely on config-based bypass
+            return False
         except Exception:
             return False
 
@@ -379,7 +375,11 @@ class ParratorTrayApp:
             print("Smart cleanup enabled")
             # Show available engines
             status = self.cleanup_manager.get_engine_status()
-            available = [name for name, status_text in status.items() if "available" in status_text.lower()]
+            available = [
+                name
+                for name, status_text in status.items()
+                if "available" in status_text.lower()
+            ]
             print(f"Available engines: {', '.join(available)}")
         else:
             print("Smart cleanup disabled")

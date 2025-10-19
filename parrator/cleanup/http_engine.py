@@ -6,7 +6,7 @@ Provides text cleaning using custom HTTP endpoints.
 
 import json
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import requests  # type: ignore[import-untyped]
 
@@ -37,11 +37,15 @@ class HttpEngine(CleanupEngineBase):
 
             if cleaned_text:
                 processing_time = (time.time() - start_time) * 1000
-                chars_saved = original_length - len(cleaned_text)
-                print(f"HTTP Cleaned: {original_length} → {len(cleaned_text)} chars • {processing_time:.0f}ms")
+                print(
+                    f"HTTP Cleaned: {original_length} → {len(cleaned_text)} "
+                    f"chars • {processing_time:.0f}ms"
+                )
                 return cleaned_text.strip()
             else:
-                print("HTTP endpoint returned empty response, falling back to rule-based")
+                print(
+                    "HTTP endpoint returned empty response, falling back to rule-based"
+                )
                 return self._fallback_clean(text, mode)
 
         except Exception as e:
@@ -60,8 +64,8 @@ class HttpEngine(CleanupEngineBase):
                 "code": True,
                 "hashtags": True,
                 "emojis": True,
-                "all_caps": True
-            }
+                "all_caps": True,
+            },
         }
 
         # Add API key if configured
@@ -73,10 +77,7 @@ class HttpEngine(CleanupEngineBase):
     def _call_endpoint(self, payload: Dict[str, Any]) -> Optional[str]:
         """Call the HTTP endpoint."""
         # Prepare headers
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "Parrator/1.0"
-        }
+        headers = {"Content-Type": "application/json", "User-Agent": "Parrator/1.0"}
 
         # Add custom headers
         headers.update(self.headers)
@@ -87,10 +88,7 @@ class HttpEngine(CleanupEngineBase):
 
         try:
             response = requests.post(
-                self.endpoint,
-                json=payload,
-                headers=headers,
-                timeout=self.timeout
+                self.endpoint, json=payload, headers=headers, timeout=self.timeout
             )
             response.raise_for_status()
 
@@ -129,6 +127,7 @@ class HttpEngine(CleanupEngineBase):
     def _fallback_clean(self, text: str, mode: str) -> str:
         """Fallback to rule-based cleaning."""
         from .rule_engine import RuleEngine
+
         rule_engine = RuleEngine(self.config)
         return rule_engine.clean(text, mode)
 
@@ -136,7 +135,10 @@ class HttpEngine(CleanupEngineBase):
         """Check if HTTP endpoint is available."""
         try:
             # Try a simple health check or ping
-            health_url = self.endpoint.rstrip("/v1/clean") + "/health"
+            if self.endpoint.endswith("/v1/clean"):
+                health_url = self.endpoint[:-9] + "/health"
+            else:
+                health_url = self.endpoint.rstrip("/") + "/health"
 
             try:
                 response = requests.get(health_url, timeout=5)
@@ -144,12 +146,12 @@ class HttpEngine(CleanupEngineBase):
             except requests.exceptions.RequestException:
                 # If health endpoint fails, try the main endpoint with a minimal test
                 test_payload = {"text": "test", "mode": "conservative"}
-                response = requests.post(
-                    self.endpoint,
-                    json=test_payload,
-                    timeout=2
-                )
-                return response.status_code in [200, 400, 422]  # Accept errors as "available"
+                response = requests.post(self.endpoint, json=test_payload, timeout=2)
+                return response.status_code in [
+                    200,
+                    400,
+                    422,
+                ]  # Accept errors as "available"
 
         except Exception:
             return False

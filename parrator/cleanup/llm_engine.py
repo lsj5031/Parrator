@@ -4,9 +4,8 @@ Local LLM cleanup engine.
 Provides AI-powered text cleaning using local LLM services like Ollama.
 """
 
-import json
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import requests  # type: ignore[import-untyped]
 
@@ -36,8 +35,10 @@ class LocalLLMEngine(CleanupEngineBase):
 
             if cleaned_text:
                 processing_time = (time.time() - start_time) * 1000
-                chars_saved = original_length - len(cleaned_text)
-                print(f"LLM Cleaned: {original_length} → {len(cleaned_text)} chars • {processing_time:.0f}ms")
+                print(
+                    f"LLM Cleaned: {original_length} → {len(cleaned_text)} "
+                    f"chars • {processing_time:.0f}ms"
+                )
                 return cleaned_text.strip()
             else:
                 print("LLM returned empty response, falling back to rule-based")
@@ -53,27 +54,31 @@ class LocalLLMEngine(CleanupEngineBase):
 
         if mode == "conservative":
             prompt = (
-                base_prompt +
-                "Fix grammar and punctuation only. Do not change wording or meaning. "
+                base_prompt
+                + "Fix grammar and punctuation only. Do not change wording or meaning. "
                 "Preserve URLs, emails, numbers, code-like text, and proper nouns. "
                 "Return only the corrected text.\n\n"
                 f"Text: {text}"
             )
         elif mode == "standard":
             prompt = (
-                base_prompt +
-                "Fix grammar and punctuation, remove filler words ('um', 'uh', 'like', 'you know', 'I mean'), "
-                "and lightly tighten wording. Do not change meaning. Do not fabricate content. "
+                base_prompt + "Fix grammar and punctuation, remove filler words "
+                "('um', 'uh', 'like', 'you know', 'I mean'), "
+                "and lightly tighten wording. Do not change meaning. "
+                "Do not fabricate content. "
                 "Preserve URLs, emails, numbers, code-like text, and proper nouns. "
                 "Return only the cleaned text.\n\n"
                 f"Text: {text}"
             )
         else:  # rewrite
             prompt = (
-                base_prompt +
-                "Fix grammar and punctuation, remove all filler words and disfluencies, "
-                "and rewrite for clarity and conciseness. Make it professional and neutral in tone. "
-                "Preserve meaning, URLs, emails, numbers, code-like text, and proper nouns. "
+                base_prompt
+                + "Fix grammar and punctuation, remove all filler words "
+                + "and disfluencies, "
+                "and rewrite for clarity and conciseness. "
+                "Make it professional and neutral in tone. "
+                "Preserve meaning, URLs, emails, numbers, code-like text, "
+                + "and proper nouns. "
                 "Do not fabricate content. Return only the rewritten text.\n\n"
                 f"Text: {text}"
             )
@@ -104,8 +109,8 @@ class LocalLLMEngine(CleanupEngineBase):
             "options": {
                 "temperature": 0.1,  # Low temperature for consistent results
                 "top_p": 0.9,
-                "max_tokens": min(len(prompt) + 200, 1000)  # Reasonable limit
-            }
+                "max_tokens": min(len(prompt) + 200, 1000),  # Reasonable limit
+            },
         }
 
         response = requests.post(url, json=data, timeout=self.timeout)
@@ -119,12 +124,10 @@ class LocalLLMEngine(CleanupEngineBase):
         url = f"{self.endpoint}/v1/chat/completions"
         data = {
             "model": self.model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
             "max_tokens": min(len(prompt) + 200, 1000),
-            "stream": False
+            "stream": False,
         }
 
         response = requests.post(url, json=data, timeout=self.timeout)
@@ -140,6 +143,7 @@ class LocalLLMEngine(CleanupEngineBase):
     def _fallback_clean(self, text: str, mode: str) -> str:
         """Fallback to rule-based cleaning."""
         from .rule_engine import RuleEngine
+
         rule_engine = RuleEngine(self.config)
         return rule_engine.clean(text, mode)
 
